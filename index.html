@@ -76,6 +76,14 @@ table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid 
 .lbtn.full{border-color:var(--ok)}
 .wrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line);align-items:start}
 .wrow .w{font-size:17px;font-weight:700}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.fcard{display:flex;flex-direction:column;gap:6px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:0 0 10px;cursor:pointer;overflow:hidden}
+.fcard .th{aspect-ratio:16/9;background:var(--sunk);width:100%;object-fit:cover;display:block}
+.fcard>span{padding:0 12px}
+.player{position:relative;aspect-ratio:16/9;width:100%;max-width:100%;background:#000;border-radius:8px;overflow:hidden}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+textarea{font:inherit;color:inherit;width:100%;min-height:120px;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:10px}
+input[type=text],input[type=url]{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 10px;max-width:100%;flex:1;min-width:180px}
 /* questions */
 .q .stem{font-size:16px}.q .stem .vi{margin-top:8px}
 .opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer;background:var(--surface)}
@@ -113,7 +121,7 @@ const D=JSON.parse(document.getElementById('data').textContent);
 const $=(s,r=document)=>r.querySelector(s), app=$('#app');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const KEY='ctai-v1';
-let S={lang:'both',stats:{},hist:[],read:{},exam:null,game:{},toeic:{known:{},best:{}}};
+let S={lang:'both',stats:{},hist:[],read:{},exam:null,game:{},toeic:{known:{},best:{}},film:{seen:{},notes:{},mine:[]}};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const CH=D.chapters.filter(c=>c.n>=1&&c.n<=7);
@@ -132,14 +140,14 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random(
 const sameSet=(a,b)=>a.length===b.length&&a.every(x=>b.includes(x));
 const loText=lo=>D.los[lo]?one(D.los[lo]):'';
 
-const VIEWS=[['home','Tổng quan'],['hoc','Tài liệu song ngữ'],['thuatngu','Thuật ngữ'],['luyentap','Luyện tập'],['game','Trò chơi'],['thi','Thi thử'],['toeic','TOEIC 600']];
+const VIEWS=[['home','Tổng quan'],['hoc','Tài liệu song ngữ'],['thuatngu','Thuật ngữ'],['luyentap','Luyện tập'],['game','Trò chơi'],['thi','Thi thử'],['toeic','TOEIC 600'],['phim','Phim ngắn']];
 let view='home', sub={}, tick=null;
 function nav(){ $('#nav').innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" ${k===view?'aria-current="page"':''}>${l}</a>`).join('');
   document.querySelectorAll('#lang button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===S.lang)) }
 $('#lang').onclick=e=>{const l=e.target.dataset.l;if(l){S.lang=l;save();render()}};
 window.addEventListener('hashchange',()=>{route();render()});
 function route(){const h=location.hash.slice(1);view=VIEWS.some(v=>v[0]===h)?h:'home'}
-function render(){nav();clearInterval(tick);app.onclick=app.onchange=app.onkeydown=null;app.className=((view==='thi'&&S.exam&&!S.exam.done)||(view==='hoc'&&S.lang==='both'))?'wide':'';({home,hoc,thuatngu,luyentap,game,thi,toeic})[view]()}
+function render(){nav();clearInterval(tick);app.onclick=app.onchange=app.onkeydown=null;app.className=((view==='thi'&&S.exam&&!S.exam.done)||(view==='hoc'&&S.lang==='both'))?'wide':'';({home,hoc,thuatngu,luyentap,game,thi,toeic,phim})[view]()}
 function go(v){if(location.hash.slice(1)===v){view=v;render()}else location.hash=v;window.scrollTo(0,0)}
 
 /* ---------- Tổng quan ---------- */
@@ -153,7 +161,7 @@ function home(){
     <div class="fact"><b>${off.length}</b>câu hỏi trắc nghiệm</div><div class="fact"><b>${pts}</b>điểm tối đa (đề mẫu A)</div>
     <div class="fact"><b>65%</b>điểm đạt, tức ${Math.ceil(pts*.65)}/${pts}</div><div class="fact"><b>60′</b>làm bài (75′ nếu không thi bằng tiếng mẹ đẻ)</div></div>
     <p class="small muted">Điểm đạt và thời gian là quy định chung của ISTQB cho kỳ thi 40 câu; hãy xác nhận lại với đơn vị tổ chức thi của bạn. Các chương Giới thiệu, bài thực hành (HO), tài liệu tham khảo và phụ lục không nằm trong phạm vi thi.</p>
-    <div class="row"><button class="btn pri" data-go="thi">Thi thử</button><button class="btn" data-go="luyentap">Luyện tập theo chương</button><button class="btn" data-go="game">Chơi để học</button><button class="btn" data-go="hoc">Đọc tài liệu</button><button class="btn" data-go="toeic">Từ vựng TOEIC</button></div></div>
+    <div class="row"><button class="btn pri" data-go="thi">Thi thử</button><button class="btn" data-go="luyentap">Luyện tập theo chương</button><button class="btn" data-go="game">Chơi để học</button><button class="btn" data-go="hoc">Đọc tài liệu</button><button class="btn" data-go="toeic">Từ vựng TOEIC</button><button class="btn" data-go="phim">Phim ngắn</button></div></div>
   <div class="panel"><h3>Tiến độ theo chương</h3><p class="small muted">Tỷ lệ câu hỏi bạn trả lời đúng ở lần làm gần nhất. Đã làm ${done}/${QS.length} câu trong ngân hàng.</p>
     ${CH.map(c=>{const [ok,t]=mastery(c.n);return `<div class="chrow"><div><b>${esc(one(c.title))}</b><div class="small muted">${c.minutes} phút học · ${S.read[c.n]?'đã đọc':'chưa đọc'}</div></div>
       <div class="row"><div class="meter"><i style="width:${t?ok/t*100:0}%"></i></div><span class="mono small">${ok}/${t}</span></div>
@@ -390,6 +398,53 @@ function toeic(){
   app.onclick=e=>{if(base(e))return;const b=e.target.closest('.mcard');if(!b||m.bad)return;m.sel[b.dataset.side]=+b.dataset.i;
     if(m.sel.l!=null&&m.sel.r!=null){if(m.sel.l===m.sel.r){m.done.push(m.sel.l);m.sel={}}else{m.miss++;m.bad=m.sel;m.sel={};setTimeout(()=>{m.bad=null;if(sub.tq===m&&view==='toeic')render()},650)}}
     render()};
+}
+
+/* ---------- Phim ngắn ---------- */
+const FILMS=[
+ {id:'Cbk980jV7Ao',t:'Validation',by:'Kurt Kuenne',m:16,g:'Phim ngắn',d:'Hài lãng mạn, rất nhiều hội thoại đời thường và lời khen.'},
+ {id:'k1vCrsZ80M4',t:"The Neighbors' Window",by:'Marshall Curry Productions',m:20,g:'Phim ngắn',d:'Phim đoạt Oscar về một gia đình nhìn sang căn hộ đối diện.'},
+ {id:'lOeQUwdAjE0',t:'ReMoved',by:'Nathanael Matanick',m:13,g:'Phim ngắn',d:'Lời kể chậm, rõ của một bé gái sống ở nhà nuôi tạm.'},
+ {id:'lK_cdkpazjI',t:'Sight',by:'TheCGBros',m:8,g:'Phim ngắn',d:'Khoa học viễn tưởng về kính thực tế ảo, hội thoại trong buổi hẹn hò.'},
+ {id:'h6fcK_fRYaI',t:'The Egg',by:'Kurzgesagt',m:8,g:'Phim ngắn',d:'Truyện ngắn hoạt hình, giọng đọc chuẩn và rõ.'},
+ {id:'kNw8V_Fkw28',t:'Hair Love',by:'Sony Pictures Animation',m:7,g:'Phim ngắn',d:'Hoạt hình đoạt Oscar, ít thoại, hợp cho người mới bắt đầu.'},
+ {id:'WjqiU5FgsYc',t:'The Present',by:'The Present',m:4,g:'Phim ngắn',d:'Hoạt hình rất ngắn, vài câu thoại đơn giản.'},
+ {id:'1Evwgu369Jw',t:'Brené Brown on Empathy',by:'Royal Society of Arts',m:3,g:'Hoạt hình giải thích',d:'Phân biệt đồng cảm và thương hại, từ vựng về cảm xúc.'},
+ {id:'MBRqu0YOH14',t:'Optimistic Nihilism',by:'Kurzgesagt',m:6,g:'Hoạt hình giải thích',d:'Giọng đọc chậm, từ vựng học thuật vừa phải.'},
+ {id:'JC82Il2cjqA',t:'You Can Learn Anything',by:'Khan Academy',m:2,g:'Hoạt hình giải thích',d:'Rất ngắn, câu đơn giản, hợp để luyện nhại theo.'},
+ {id:'H14bBuluwB8',t:'Grit: The Power of Passion and Perseverance',by:'TED',m:6,g:'Bài nói ngắn',d:'Angela Lee Duckworth, nói rõ và chậm.'},
+ {id:'eIho2S0ZahI',t:'How to Speak So That People Want to Listen',by:'TED',m:10,g:'Bài nói ngắn',d:'Julian Treasure, phát âm chuẩn giọng Anh.'},
+ {id:'R1vskiVDwl4',t:'10 Ways to Have a Better Conversation',by:'TED',m:12,g:'Bài nói ngắn',d:'Celeste Headlee, từ vựng giao tiếp hằng ngày.'},
+ {id:'8KkKuTCFvzI',t:'What Makes a Good Life?',by:'TED',m:13,g:'Bài nói ngắn',d:'Robert Waldinger, tốc độ nói chậm, dễ theo.'},
+ {id:'arj7oStGLkU',t:'Inside the Mind of a Master Procrastinator',by:'TED',m:14,g:'Bài nói ngắn',d:'Tim Urban, hài hước, nói nhanh hơn một chút.'},
+ {id:'UF8uR6Z6KLc',t:"Steve Jobs' 2005 Stanford Commencement Address",by:'Stanford',m:15,g:'Bài nói ngắn',d:'Ba câu chuyện đời, câu văn ngắn và rõ.'}
+];
+const ytId=u=>{u=String(u||'').trim();const m=u.match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/);return m?m[1]:/^[\w-]{11}$/.test(u)?u:null};
+function phim(){
+  const F=S.film||(S.film={seen:{},notes:{},mine:[]}),m=sub.fm||(sub.fm={});
+  const all=FILMS.concat(F.mine.map(x=>({id:x.id,t:x.t||'Video của tôi',by:'Tự thêm',g:'Video tôi tự thêm',mine:true})));
+  if(!m.id){
+    const groups=[...new Set(all.map(f=>f.g))];
+    app.innerHTML=`<div class="stack"><h1>Phim ngắn học tiếng Anh</h1><p class="muted">Xem phim ngắn và video trên YouTube với phụ đề tiếng Anh bật sẵn, ghi lại từ mới ngay bên dưới. Bạn cũng có thể dán link YouTube bất kỳ để thêm vào danh sách của mình.</p></div>
+      ${groups.map(g=>`<div class="stack"><h3>${esc(g)}</h3><div class="fgrid">${all.filter(f=>f.g===g).map(f=>`<button class="fcard" data-id="${f.id}"><img class="th" loading="lazy" alt="" src="https://i.ytimg.com/vi/${f.id}/mqdefault.jpg" onerror="this.removeAttribute('src')"><span><b>${esc(f.t)}</b></span><span class="small muted">${esc(f.by)}${f.m?' · khoảng '+f.m+' phút':''}</span>${f.d?`<span class="small">${esc(f.d)}</span>`:''}<span>${F.seen[f.id]?'<span class="chip ok">Đã xem</span>':''}${F.notes[f.id]?' <span class="chip">Có ghi chú</span>':''}</span></button>`).join('')}</div></div>`).join('')}
+      <div class="panel stack"><b>Thêm video của bạn</b><div class="row"><input type="url" id="fu" placeholder="Dán link YouTube" aria-label="Link YouTube"><input type="text" id="ft" placeholder="Tên gợi nhớ (không bắt buộc)" aria-label="Tên video"><button class="btn pri" id="fadd">Thêm</button></div><div class="small" id="fmsg" style="color:var(--bad)"></div>
+        <div class="small muted">Nên chọn video có phụ đề tiếng Anh (biểu tượng CC trên YouTube). Danh sách tự thêm chỉ lưu trên trình duyệt này.</div></div>`;
+    app.onclick=e=>{const c=e.target.closest('.fcard');if(c){sub.fm={id:c.dataset.id};render();window.scrollTo(0,0);return}
+      if(e.target.id==='fadd'){const id=ytId($('#fu').value);if(!id){$('#fmsg').textContent='Link chưa đúng. Hãy dán link dạng youtube.com/watch?v=... hoặc youtu.be/...';return}
+        if(all.some(f=>f.id===id)){$('#fmsg').textContent='Video này đã có trong danh sách.';return}
+        F.mine.push({id,t:$('#ft').value.trim()});save();sub.fm={id};render();window.scrollTo(0,0)}};return}
+  const f=all.find(x=>x.id===m.id)||{id:m.id,t:'Video',by:''};
+  app.innerHTML=`<div class="row"><button class="btn small" id="fb">← Danh sách phim</button></div>
+    <div class="stack"><h1>${esc(f.t)}</h1><div class="muted small">${esc(f.by)}${f.m?' · khoảng '+f.m+' phút':''}</div></div>
+    <div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${f.id}?cc_load_policy=1&cc_lang_pref=en&hl=en&rel=0&playsinline=1" title="${esc(f.t)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+    <div class="row"><a class="btn" href="https://www.youtube.com/watch?v=${f.id}" target="_blank" rel="noopener">Mở trên YouTube</a><button class="btn ${F.seen[f.id]?'':'pri'}" id="fs">${F.seen[f.id]?'Đã xem ✓ (bỏ đánh dấu)':'Đánh dấu đã xem'}</button>${f.mine?`<button class="btn" id="fdel">Xoá khỏi danh sách</button>`:''}</div>
+    <p class="small muted">Phụ đề tiếng Anh được yêu cầu bật sẵn; nếu chưa hiện, bấm nút CC trong khung phim. Đổi tốc độ ở biểu tượng bánh răng. Nếu khung phim không phát được (mạng chặn YouTube hoặc video không cho nhúng), bấm "Mở trên YouTube".</p>
+    <div class="panel stack"><b>Cách học với một phim</b><div>1. Xem lần đầu có phụ đề tiếng Anh, chỉ cần hiểu ý chính.</div><div>2. Xem lại, dừng ở câu chưa hiểu, chép từ mới và cả câu vào ô ghi chú.</div><div>3. Xem lần ba, tắt phụ đề và nói nhại theo nhân vật.</div></div>
+    <div class="panel stack"><label for="fn"><b>Ghi chú từ mới và câu hay</b></label><textarea id="fn" placeholder="Ví dụ: validate (v) – xác nhận, công nhận. “You are awesome!”">${esc(F.notes[f.id]||'')}</textarea><div class="small muted" id="fsv">Ghi chú tự lưu trên trình duyệt này.</div></div>`;
+  $('#fn').oninput=e=>{const v=e.target.value;if(v.trim())F.notes[f.id]=v;else delete F.notes[f.id];save();$('#fsv').textContent='Đã lưu.'};
+  app.onclick=e=>{const id=e.target.id;if(id==='fb'){sub.fm={};render()}
+    if(id==='fs'){if(F.seen[f.id])delete F.seen[f.id];else F.seen[f.id]=1;save();const b=e.target;b.textContent=F.seen[f.id]?'Đã xem ✓ (bỏ đánh dấu)':'Đánh dấu đã xem';b.classList.toggle('pri',!F.seen[f.id])}
+    if(id==='fdel'){F.mine=F.mine.filter(x=>x.id!==f.id);delete F.seen[f.id];delete F.notes[f.id];save();sub.fm={};render()}};
 }
 
 /* ---------- Thi thử ---------- */
