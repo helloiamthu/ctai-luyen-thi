@@ -157,7 +157,7 @@ const loText=lo=>D.los[lo]?one(D.los[lo]):'';
 
 const VIEWS=[['home','Tổng quan'],['hoc','Tài liệu song ngữ'],['nghe','Học tiếng Anh'],['thuatngu','Thuật ngữ'],['luyentap','Luyện tập'],['game','Trò chơi'],['thi','Thi thử'],['toeic','TOEIC 600'],['phim','Phim ngắn']];
 let view='home', sub={}, tick=null;
-function nav(){ $('#nav').innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" ${k===view?'aria-current="page"':''}>${l}</a>`).join('');
+function nav(){ $('#nav').innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" ${k===view?'aria-current="page"':''}>${l}</a>`).join('')+'<a href="https://helloiamthu.github.io/ctai-luyen-thi/ctfl/" title="Trang ôn CTFL v4.0">CTFL ↗</a>';
   document.querySelectorAll('#lang button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===S.lang)) }
 $('#lang').onclick=e=>{const l=e.target.dataset.l;if(l){S.lang=l;save();render()}};
 window.addEventListener('hashchange',()=>{route();render()});
